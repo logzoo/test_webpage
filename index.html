@@ -36,10 +36,6 @@
         opacity: 0.9;
         word-break: break-all;
       }
-      #error {
-        color: #f97373;
-        margin-top: 6px;
-      }
       .field-label {
         text-align: left;
         font-size: 0.85rem;
@@ -71,10 +67,6 @@
         font-size: 0.9rem;
         cursor: pointer;
       }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
       .status {
         margin-top: 8px;
         font-size: 0.8rem;
@@ -86,26 +78,26 @@
     <div class="card">
       <h1 id="headline">Connecting to Xaman…</h1>
       <p id="account">Waiting for account info…</p>
-      <p id="error"></p>
 
       <div class="field-label">Your note</div>
       <textarea
         id="noteInput"
         placeholder="Type something you want to save…"
-        disabled
       ></textarea>
-      <button id="saveBtn" disabled>Save text</button>
+
+      <button id="saveBtn">Save text</button>
+
       <div class="status" id="statusMsg"></div>
     </div>
 
-    <!-- Xaman (Xumm) SDK CDN -->
+    <!-- Xaman (Xumm) SDK -->
     <script src="https://xumm.app/assets/cdn/xumm.min.js"></script>
     <script>
-      const xumm = new Xumm("YOUR_API_KEY_HERE"); // <-- keep your real key
+      // Replace this with your real API key
+      const xumm = new Xumm("YOUR_API_KEY_HERE");
 
       const headlineEl = document.getElementById("headline");
       const accountEl = document.getElementById("account");
-      const errorEl = document.getElementById("error");
       const noteInput = document.getElementById("noteInput");
       const saveBtn = document.getElementById("saveBtn");
       const statusMsg = document.getElementById("statusMsg");
@@ -116,7 +108,23 @@
         statusMsg.textContent = msg || "";
       }
 
-      // Enable UI once xApp is ready
+      // Load saved text immediately (even before Xaman is ready)
+      const savedText = window.localStorage.getItem(STORAGE_KEY);
+      if (savedText !== null) {
+        noteInput.value = savedText;
+        setStatus("Loaded saved text.");
+      } else {
+        setStatus("Nothing saved yet.");
+      }
+
+      // Save button
+      saveBtn.addEventListener("click", () => {
+        const text = noteInput.value.trim();
+        window.localStorage.setItem(STORAGE_KEY, text);
+        setStatus("Saved ✔ (stored locally on this device)");
+      });
+
+      // When Xaman is ready
       xumm.on("ready", async () => {
         headlineEl.textContent = "Hello from your xApp!";
 
@@ -124,36 +132,8 @@
           const account = await xumm.user.account;
           accountEl.textContent = `You are signed in as: ${account}`;
         } catch (err) {
-          console.error(err);
-          accountEl.textContent = "Could not fetch account address.";
+          accountEl.textContent = "Couldn't load account information.";
         }
-
-        // Load previously saved text (if any) from localStorage
-        const savedText = window.localStorage.getItem(STORAGE_KEY);
-        if (savedText !== null) {
-          noteInput.value = savedText;
-          setStatus("Loaded saved text.");
-        } else {
-          setStatus("Nothing saved yet.");
-        }
-
-        // Enable inputs now that everything is ready
-        noteInput.disabled = false;
-        saveBtn.disabled = false;
-      });
-
-      // Handle errors from Xumm
-      xumm.on("error", (e) => {
-        console.error("Xumm error", e);
-        headlineEl.textContent = "There was a problem starting the xApp.";
-        errorEl.textContent = String(e);
-      });
-
-      // Click handler: save text to localStorage
-      saveBtn.addEventListener("click", () => {
-        const text = noteInput.value.trim();
-        window.localStorage.setItem(STORAGE_KEY, text);
-        setStatus("Saved ✔ (stored in this device's browser)");
       });
     </script>
   </body>
