@@ -22,7 +22,8 @@
         border-radius: 16px;
         background: #111827;
         text-align: center;
-        max-width: 360px;
+        max-width: 380px;
+        width: 100%;
         box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
       }
       h1 {
@@ -39,6 +40,46 @@
         color: #f97373;
         margin-top: 6px;
       }
+      .field-label {
+        text-align: left;
+        font-size: 0.85rem;
+        opacity: 0.8;
+        margin-top: 16px;
+        margin-bottom: 4px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 80px;
+        border-radius: 10px;
+        border: 1px solid #374151;
+        padding: 8px 10px;
+        background: #020617;
+        color: #f9fafb;
+        font-family: inherit;
+        font-size: 0.9rem;
+        resize: vertical;
+        box-sizing: border-box;
+      }
+      button {
+        margin-top: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: none;
+        background: #10b981;
+        color: #022c22;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .status {
+        margin-top: 8px;
+        font-size: 0.8rem;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -46,38 +87,73 @@
       <h1 id="headline">Connecting to Xaman…</h1>
       <p id="account">Waiting for account info…</p>
       <p id="error"></p>
+
+      <div class="field-label">Your note</div>
+      <textarea
+        id="noteInput"
+        placeholder="Type something you want to save…"
+        disabled
+      ></textarea>
+      <button id="saveBtn" disabled>Save text</button>
+      <div class="status" id="statusMsg"></div>
     </div>
 
     <!-- Xaman (Xumm) SDK CDN -->
     <script src="https://xumm.app/assets/cdn/xumm.min.js"></script>
     <script>
-      // 1. Create Xumm instance with your API Key
-      const xumm = new Xumm("77a37799-ff68-413d-a128-e94a6675b391"); // <-- replace this
+      const xumm = new Xumm("YOUR_API_KEY_HERE"); // <-- keep your real key
 
-      // 2. When the xApp environment is ready
-      xumm.on("ready", () => {
-        document.getElementById("headline").textContent = "Hello from your xApp!";
+      const headlineEl = document.getElementById("headline");
+      const accountEl = document.getElementById("account");
+      const errorEl = document.getElementById("error");
+      const noteInput = document.getElementById("noteInput");
+      const saveBtn = document.getElementById("saveBtn");
+      const statusMsg = document.getElementById("statusMsg");
 
-        // 3. Get the selected XRPL account inside Xaman
-        xumm.user.account
-          .then((account) => {
-            document.getElementById(
-              "account"
-            ).textContent = `You are signed in as: ${account}`;
-          })
-          .catch((err) => {
-            console.error(err);
-            document.getElementById("error").textContent =
-              "Could not fetch account address.";
-          });
+      const STORAGE_KEY = "xapp_demo_saved_text";
+
+      function setStatus(msg) {
+        statusMsg.textContent = msg || "";
+      }
+
+      // Enable UI once xApp is ready
+      xumm.on("ready", async () => {
+        headlineEl.textContent = "Hello from your xApp!";
+
+        try {
+          const account = await xumm.user.account;
+          accountEl.textContent = `You are signed in as: ${account}`;
+        } catch (err) {
+          console.error(err);
+          accountEl.textContent = "Could not fetch account address.";
+        }
+
+        // Load previously saved text (if any) from localStorage
+        const savedText = window.localStorage.getItem(STORAGE_KEY);
+        if (savedText !== null) {
+          noteInput.value = savedText;
+          setStatus("Loaded saved text.");
+        } else {
+          setStatus("Nothing saved yet.");
+        }
+
+        // Enable inputs now that everything is ready
+        noteInput.disabled = false;
+        saveBtn.disabled = false;
       });
 
-      // Optional: basic error handling
+      // Handle errors from Xumm
       xumm.on("error", (e) => {
         console.error("Xumm error", e);
-        document.getElementById("headline").textContent =
-          "There was a problem starting the xApp.";
-        document.getElementById("error").textContent = String(e);
+        headlineEl.textContent = "There was a problem starting the xApp.";
+        errorEl.textContent = String(e);
+      });
+
+      // Click handler: save text to localStorage
+      saveBtn.addEventListener("click", () => {
+        const text = noteInput.value.trim();
+        window.localStorage.setItem(STORAGE_KEY, text);
+        setStatus("Saved ✔ (stored in this device's browser)");
       });
     </script>
   </body>
